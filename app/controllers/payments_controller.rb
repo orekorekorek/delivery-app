@@ -1,18 +1,25 @@
 class PaymentsController < ApplicationController
+  before_action :set_product, only: :create
+
   def create
-    product = Product.find(params[:product_id])
-    payment_result = CloudPayment.proccess(
-      user_uid: current_user.cloud_payments_uid,
-      amount_cents: params[:amount] * 100,
-      currency: 'RUB'
-    )
+    payment_result = PaymentsService.new(product: @product, user: current_user).call
 
     if payment_result[:status] == 'completed'
-      product_access = ProductAccess.create(user: current_user, product: product)
-      OrderMailer.product_access_email(product_access).deliver_later
+      DeliveryForm.new(product: @product, user: current_user, address: delivery_params[:address]).call
+
       redirect_to :successful_payment_path
     else
-      redirect_to :failed_payment_path, note: 'Что-то пошло не так'
+      redirect_to :failed_payment_path, 'Что-то пошло не так'
     end
+  end
+
+  private
+
+  def delivery_params
+    params.permit(:address)
+  end
+
+  def set_product
+    @product = Product.find(params[:product_id])
   end
 end
