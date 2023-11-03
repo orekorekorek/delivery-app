@@ -1,11 +1,10 @@
 class PaymentsController < ApplicationController
-  before_action :set_product, only: :create
-
   def create
-    payment_result = PaymentsService.new(product: @product, user: current_user).call
+    product = Product.find(params[:product_id])
+    payment_result = PaymentsService.new(product:, user: current_user, amount: purchase_params[:amount]).call
 
     if payment_result[:status] == 'completed'
-      DeliveryForm.new(product: @product, user: current_user, address: delivery_params[:address]).call
+      DeliveryForm.new(product:, user: current_user, address: delivery_params[:address]).call
 
       redirect_to :successful_payment_path
     else
@@ -19,7 +18,7 @@ class PaymentsController < ApplicationController
     params.permit(:address)
   end
 
-  def set_product
-    @product = Product.find(params[:product_id])
+  def purchase_params
+    params.permit(:amount)
   end
 end
